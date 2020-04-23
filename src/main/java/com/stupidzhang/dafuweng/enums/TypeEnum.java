@@ -2,9 +2,9 @@ package com.stupidzhang.dafuweng.enums;
 
 public enum TypeEnum {
 
-    BROAD_BASE("宽基指数", 1),
-    STRATEGY("策略指数", 2),
-    INDUSTRY("行业指数", 3);
+    BROAD_BASE("宽基", 1),
+    STRATEGY("策略", 2),
+    INDUSTRY("行业", 3);
 
 
     private String name;
