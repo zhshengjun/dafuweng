@@ -8,6 +8,7 @@ import com.stupidzhang.dafuweng.enums.TypeEnum;
 import com.stupidzhang.dafuweng.service.ObtainDanJuanExponentialService;
 import com.stupidzhang.dafuweng.util.DateUtils;
 import com.stupidzhang.dafuweng.util.ExcelTools;
+import com.stupidzhang.dafuweng.util.ExcelWaterRemarkUtils;
 import com.stupidzhang.dafuweng.util.HttpUtil;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -15,12 +16,15 @@ import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.ImageUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,6 +86,19 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
 
         creatWhiteRow(sheet, whiteStyle, line);
         export.setWorkbook(hssfWorkbook);
+
+
+        String path = Thread.currentThread().getContextClassLoader().getResource("logo.png").getPath();
+        try {
+            ExcelWaterRemarkUtils.createWaterMark("贫民窟的大富翁", path);
+            int rows = sheet.getFirstRowNum() + sheet.getLastRowNum();
+            //获取excel实际所占列
+            int cell = sheet.getRow(sheet.getFirstRowNum()).getLastCellNum() + 1;
+            //根据行与列计算实际所需多少水印
+            ExcelWaterRemarkUtils.putWaterRemarkToExcel(hssfWorkbook, sheet, path, 1, 2, 3, 5, cell / 4, rows / 5, 0, 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return export;
     }
 
