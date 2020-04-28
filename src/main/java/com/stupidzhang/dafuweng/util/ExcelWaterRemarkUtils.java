@@ -2,6 +2,7 @@ package com.stupidzhang.dafuweng.util;
 
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 
 import javax.imageio.ImageIO;
@@ -13,6 +14,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
 
+@Slf4j
 public class ExcelWaterRemarkUtils {
     /*
      * 为Excel打上水印工具函数 请自行确保参数值，以保证水印图片之间不会覆盖。 在计算水印的位置的时候，并没有考虑到单元格合并的情况，请注意
@@ -88,15 +90,16 @@ public class ExcelWaterRemarkUtils {
                 pic.resize();
             }
         }
+        log.warn("新增水印结束");
     }
 
     public static void createWaterMark(String content, String path) throws IOException {
-        Integer width = 250;
-        Integer height = 100;
+        int width = 250;
+        int height = 100;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);// 获取bufferedImage对象
         String fontType = "宋体";
-        Integer fontStyle = Font.PLAIN;
-        Integer fontSize = 25;
+        int fontStyle = Font.PLAIN;
+        int fontSize = 25;
         Font font = new Font(fontType, fontStyle, fontSize);
         Graphics2D g2d = image.createGraphics(); // 获取Graphics2d对象
         image = g2d.getDeviceConfiguration().createCompatibleImage(width, height, Transparency.TRANSLUCENT);

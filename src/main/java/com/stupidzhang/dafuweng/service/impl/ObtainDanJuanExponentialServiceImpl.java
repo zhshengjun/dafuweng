@@ -8,27 +8,25 @@ import com.stupidzhang.dafuweng.enums.TypeEnum;
 import com.stupidzhang.dafuweng.service.ObtainDanJuanExponentialService;
 import com.stupidzhang.dafuweng.util.DateUtils;
 import com.stupidzhang.dafuweng.util.ExcelTools;
-import com.stupidzhang.dafuweng.util.ExcelWaterRemarkUtils;
 import com.stupidzhang.dafuweng.util.HttpUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.ImageUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponentialService {
     @Override
     public ExportFileDTO obtainDanJuanExponential() {
@@ -83,22 +81,8 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
 
         // 合并单元格
         sheet.addMergedRegion(new CellRangeAddress(valuations.size() + 2, valuations.size() + 2, 8, 9));
-
         creatWhiteRow(sheet, whiteStyle, line);
         export.setWorkbook(hssfWorkbook);
-
-
-        String path = Thread.currentThread().getContextClassLoader().getResource("logo.png").getPath();
-        try {
-            ExcelWaterRemarkUtils.createWaterMark("贫民窟的大富翁", path);
-            int rows = sheet.getFirstRowNum() + sheet.getLastRowNum();
-            //获取excel实际所占列
-            int cell = sheet.getRow(sheet.getFirstRowNum()).getLastCellNum() + 1;
-            //根据行与列计算实际所需多少水印
-            ExcelWaterRemarkUtils.putWaterRemarkToExcel(hssfWorkbook, sheet, path, 1, 2, 3, 5, cell / 4, rows / 5, 0, 0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         return export;
     }
 
@@ -240,9 +224,9 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
     private Map<String, List<Valuation>> separate(List<Valuation> valuations) {
         Map<String, List<Valuation>> map = new HashMap<>();
         // 分类
-        List<Valuation> low = valuations.stream().filter(va -> (va.getPb_percentile() < 0.25 && va.getPe() < 12))
+        List<Valuation> low = valuations.stream().filter(va -> (va.getPb_percentile() < 0.25 && va.getPe_percentile() < 0.25 && va.getPe() < 12))
                 .sorted(Comparator.comparing(Valuation::getRoe)).collect(Collectors.toList());
-        List<Valuation> high = valuations.stream().filter(va -> (va.getPb_percentile() > 0.70 && va.getPe() > 20))
+        List<Valuation> high = valuations.stream().filter(va -> (va.getPb_percentile() > 0.70 || va.getPe_percentile() > 0.70 || va.getPe() > 20))
                 .sorted(Comparator.comparing(Valuation::getRoe)).collect(Collectors.toList());
         List<String> lowCode = low.stream().map(Valuation::getIndex_code).collect(Collectors.toList());
         List<String> highCode = high.stream().map(Valuation::getIndex_code).collect(Collectors.toList());
