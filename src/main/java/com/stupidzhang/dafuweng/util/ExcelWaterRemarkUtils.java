@@ -94,12 +94,12 @@ public class ExcelWaterRemarkUtils {
     }
 
     public static void createWaterMark(String content, String path) throws IOException {
-        int width = 250;
+        int width = 150;
         int height = 100;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);// 获取bufferedImage对象
         String fontType = "宋体";
         int fontStyle = Font.PLAIN;
-        int fontSize = 25;
+        int fontSize = 15;
         Font font = new Font(fontType, fontStyle, fontSize);
         Graphics2D g2d = image.createGraphics(); // 获取Graphics2d对象
         image = g2d.getDeviceConfiguration().createCompatibleImage(width, height, Transparency.TRANSLUCENT);
@@ -111,7 +111,7 @@ public class ExcelWaterRemarkUtils {
         g2d.setStroke(new BasicStroke(1));
         // 设置字体
         g2d.setFont(font); // 设置字体类型  加粗 大小
-        g2d.rotate(Math.toRadians(-30), (double) image.getWidth() / 2, (double) image.getHeight() / 2);//设置倾斜度
+        g2d.rotate(Math.toRadians(45), (double) image.getWidth() / 2, (double) image.getHeight() / 2);//设置倾斜度
         FontRenderContext context = g2d.getFontRenderContext();
         Rectangle2D bounds = font.getStringBounds(content, context);
         double x = (width - bounds.getWidth()) / 2;

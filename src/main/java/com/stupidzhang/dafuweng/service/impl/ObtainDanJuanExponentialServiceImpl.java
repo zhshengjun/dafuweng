@@ -8,6 +8,7 @@ import com.stupidzhang.dafuweng.enums.TypeEnum;
 import com.stupidzhang.dafuweng.service.ObtainDanJuanExponentialService;
 import com.stupidzhang.dafuweng.util.DateUtils;
 import com.stupidzhang.dafuweng.util.ExcelTools;
+import com.stupidzhang.dafuweng.util.ExcelWaterRemarkUtils;
 import com.stupidzhang.dafuweng.util.HttpUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
@@ -22,6 +23,7 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -62,6 +64,28 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
         line = writeList(separate.get("high"), hssfWorkbook, sheet, line, IndexedColors.RED, font);
 
         // 写入十年国债
+        line = writeNational(hssfWorkbook, sheet, font, line);
+
+        // 合并单元格
+        sheet.addMergedRegion(new CellRangeAddress(valuations.size() + 2, valuations.size() + 2, 8, 9));
+        creatWhiteRow(sheet, whiteStyle, line);
+
+        // 水印
+        //waterMark(hssfWorkbook, sheet);
+
+        export.setWorkbook(hssfWorkbook);
+        return export;
+    }
+
+    /**
+     * 十年国债
+     * @param hssfWorkbook
+     * @param sheet
+     * @param font
+     * @param line
+     * @return
+     */
+    private int writeNational(HSSFWorkbook hssfWorkbook, HSSFSheet sheet, HSSFFont font, int line) {
         String value = getNational();
         HSSFRow row = sheet.createRow(line++);
         for (int i = 1; i < 10; i++) {
@@ -78,12 +102,7 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
                 ExcelTools.writeCell(cell, "贫民窟的大富翁");
             }
         }
-
-        // 合并单元格
-        sheet.addMergedRegion(new CellRangeAddress(valuations.size() + 2, valuations.size() + 2, 8, 9));
-        creatWhiteRow(sheet, whiteStyle, line);
-        export.setWorkbook(hssfWorkbook);
-        return export;
+        return line;
     }
 
     private Integer creatWhiteRow(HSSFSheet sheet, HSSFCellStyle whiteStyle, int line) {
@@ -307,5 +326,24 @@ public class ObtainDanJuanExponentialServiceImpl implements ObtainDanJuanExponen
         Document doc = Jsoup.parse(html);
         Elements rows = doc.select("span[class=arial_26 inlineblock pid-29227-last]");
         return rows.get(0).text();
+    }
+
+
+    private void waterMark(HSSFWorkbook hssfWorkbook, HSSFSheet sheet) {
+        String path = System.getProperty("user.dir");
+        path = path + "/logo.png";
+        try {
+            log.warn("开始创建水印图片");
+            ExcelWaterRemarkUtils.createWaterMark("公众号·股海沉思", path);
+            int rows = sheet.getFirstRowNum() + sheet.getLastRowNum();
+            //获取excel实际所占列
+            int cell = sheet.getRow(sheet.getFirstRowNum()).getLastCellNum();
+            //根据行与列计算实际所需多少水印
+            log.warn("开始打印增加水印");
+            ExcelWaterRemarkUtils.putWaterRemarkToExcel(hssfWorkbook, sheet, path, 1, 2, 3, 5, cell / 4, rows / 4, 0, 0);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
