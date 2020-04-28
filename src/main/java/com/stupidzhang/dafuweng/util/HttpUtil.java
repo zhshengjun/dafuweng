@@ -1,5 +1,6 @@
 package com.stupidzhang.dafuweng.util;
 
+import org.apache.catalina.manager.Constants;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -15,13 +16,14 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
+import org.springframework.util.CollectionUtils;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -29,7 +31,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -39,8 +41,8 @@ import java.util.List;
 import java.util.Map;
 
 public class HttpUtil {
-    private static PoolingHttpClientConnectionManager connMgr;
-    private static RequestConfig requestConfig;
+    private static final PoolingHttpClientConnectionManager connMgr;
+    private static final RequestConfig requestConfig;
     private static final int MAX_TIMEOUT = 7000;
 
     static {
@@ -58,7 +60,7 @@ public class HttpUtil {
         // 设置从连接池获取连接实例的超时
         configBuilder.setConnectionRequestTimeout(MAX_TIMEOUT);
         // 在提交请求之前 测试连接是否可用
-        configBuilder.setStaleConnectionCheckEnabled(true);
+        connMgr.setValidateAfterInactivity(2000);
         requestConfig = configBuilder.build();
     }
 
@@ -69,7 +71,7 @@ public class HttpUtil {
      * @return
      */
     public static String doGet(String url) {
-        return doGet(url, new HashMap<String, Object>());
+        return doGet(url, new HashMap<>(16));
     }
 
     /**
@@ -82,22 +84,19 @@ public class HttpUtil {
     public static String doGet(String url, Map<String, Object> params) {
         String apiUrl = url;
         StringBuffer param = new StringBuffer();
-        int i = 0;
-        for (String key : params.keySet()) {
-            if (i == 0) {
-                param.append("?");
-            } else {
+        if (!CollectionUtils.isEmpty(params)) {
+            param.append("?");
+            for (String key : params.keySet()) {
                 param.append("&");
                 param.append(key).append("=").append(params.get(key));
-                i++;
             }
         }
         apiUrl += param;
         String result = null;
-        HttpClient httpclient = new DefaultHttpClient();
+        HttpClient httpclient = HttpClientBuilder.create().build();
         try {
             HttpGet httpGet = new HttpGet(apiUrl);
-            httpGet.setHeader("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36");
+            httpGet.setHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36");
             HttpResponse response = httpclient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
 
@@ -106,7 +105,7 @@ public class HttpUtil {
             HttpEntity entity = response.getEntity();
             if (entity != null) {
                 InputStream instream = entity.getContent();
-                result = IOUtils.toString(instream, "UTF-8");
+                result = IOUtils.toString(instream, StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -122,14 +121,12 @@ public class HttpUtil {
      */
     public static String doGet2(String url) {
         String apiUrl = url;
-        int i = 0;
         String result = null;
-        HttpClient httpclient = new DefaultHttpClient();
+        HttpClient httpclient = HttpClientBuilder.create().build();
         try {
             HttpGet httpGet = new HttpGet(apiUrl);
-            
-            //Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36
-            httpGet.setHeader("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36");
+
+            httpGet.setHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36");
             HttpResponse response = httpclient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
 
@@ -137,11 +134,12 @@ public class HttpUtil {
 
             HttpEntity entity = response.getEntity();
             if (entity != null) {
-                InputStream instream = entity.getContent();
-                result = IOUtils.toString(instream, "UTF-8");
+                InputStream input = entity.getContent();
+                result = IOUtils.toString(input, StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
             e.printStackTrace();
+
         }
         return result;
     }
@@ -154,7 +152,7 @@ public class HttpUtil {
      * @return
      */
     public static String doPost(String apiUrl) {
-        return doPost(apiUrl, new HashMap<String, Object>());
+        return doPost(apiUrl, new HashMap<>(16));
     }
 
     /**
@@ -173,16 +171,15 @@ public class HttpUtil {
         try {
             httpPost.setConfig(requestConfig);
             List<NameValuePair> pairList = new ArrayList<>(params.size());
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                NameValuePair pair = new BasicNameValuePair(entry.getKey(), entry
-                        .getValue().toString());
+            params.forEach((key, value) -> {
+                NameValuePair pair = new BasicNameValuePair(key, value.toString());
                 pairList.add(pair);
-            }
-            httpPost.setEntity(new UrlEncodedFormEntity(pairList, Charset.forName("UTF-8")));
+            });
+            httpPost.setEntity(new UrlEncodedFormEntity(pairList, StandardCharsets.UTF_8));
             response = httpClient.execute(httpPost);
             System.out.println(response.toString());
             HttpEntity entity = response.getEntity();
-            httpStr = EntityUtils.toString(entity, "UTF-8");
+            httpStr = EntityUtils.toString(entity, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -212,14 +209,15 @@ public class HttpUtil {
 
         try {
             httpPost.setConfig(requestConfig);
-            StringEntity stringEntity = new StringEntity(json.toString(), "UTF-8");//解决中文乱码问题
-            stringEntity.setContentEncoding("UTF-8");
+            //解决中文乱码问题
+            StringEntity stringEntity = new StringEntity(json.toString(), StandardCharsets.UTF_8);
+            stringEntity.setContentEncoding(Constants.CHARSET);
             stringEntity.setContentType("application/json");
             httpPost.setEntity(stringEntity);
             response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
             System.out.println(response.getStatusLine().getStatusCode());
-            httpStr = EntityUtils.toString(entity, "UTF-8");
+            httpStr = EntityUtils.toString(entity, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -249,13 +247,12 @@ public class HttpUtil {
 
         try {
             httpPost.setConfig(requestConfig);
-            List<NameValuePair> pairList = new ArrayList<NameValuePair>(params.size());
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                NameValuePair pair = new BasicNameValuePair(entry.getKey(), entry
-                        .getValue().toString());
+            List<NameValuePair> pairList = new ArrayList<>(params.size());
+            params.forEach((key, value) -> {
+                NameValuePair pair = new BasicNameValuePair(key, value.toString());
                 pairList.add(pair);
-            }
-            httpPost.setEntity(new UrlEncodedFormEntity(pairList, Charset.forName("utf-8")));
+            });
+            httpPost.setEntity(new UrlEncodedFormEntity(pairList, StandardCharsets.UTF_8));
             response = httpClient.execute(httpPost);
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode != HttpStatus.SC_OK) {
@@ -265,7 +262,7 @@ public class HttpUtil {
             if (entity == null) {
                 return null;
             }
-            httpStr = EntityUtils.toString(entity, "utf-8");
+            httpStr = EntityUtils.toString(entity, StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -295,8 +292,9 @@ public class HttpUtil {
 
         try {
             httpPost.setConfig(requestConfig);
-            StringEntity stringEntity = new StringEntity(json.toString(), "UTF-8");//解决中文乱码问题
-            stringEntity.setContentEncoding("UTF-8");
+            //解决中文乱码问题
+            StringEntity stringEntity = new StringEntity(json.toString(), StandardCharsets.UTF_8);
+            stringEntity.setContentEncoding(Constants.CHARSET);
             stringEntity.setContentType("application/json");
             httpPost.setEntity(stringEntity);
             response = httpClient.execute(httpPost);
@@ -308,7 +306,7 @@ public class HttpUtil {
             if (entity == null) {
                 return null;
             }
-            httpStr = EntityUtils.toString(entity, "utf-8");
+            httpStr = EntityUtils.toString(entity, StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -362,15 +360,4 @@ public class HttpUtil {
         }
         return sslsf;
     }
-
-
-    /**
-     * 测试方法
-     *
-     * @param args
-     */
-    public static void main(String[] args) throws Exception {
-
-    }
-
 }

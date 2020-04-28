@@ -4,6 +4,7 @@ import com.stupidzhang.dafuweng.base.ExportFileDTO;
 import com.stupidzhang.dafuweng.base.Result;
 import com.stupidzhang.dafuweng.service.ObtainDanJuanExponentialService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.manager.Constants;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -33,7 +34,7 @@ public class ObtainDanJuanExponentialController {
             Workbook workbook = exportFileDTO.getWorkbook();
             String title = exportFileDTO.getName() + ".xls";
             response.setContentType("application/vnd.ms-excel;charset=utf-8");
-            response.setCharacterEncoding("UTF-8");
+            response.setCharacterEncoding(Constants.CHARSET);
             response.addHeader("Content-Disposition",
                     new String(("attachment;filename=" + title).getBytes("GB2312"), StandardCharsets.ISO_8859_1));
             try {
@@ -41,7 +42,6 @@ public class ObtainDanJuanExponentialController {
                 workbook.write(out);
                 return;
             } catch (Exception e) {
-                e.printStackTrace();
                 log.error("文件导出异常：{}", e);
             }
         }
